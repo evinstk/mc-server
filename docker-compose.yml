@@ -1,0 +1,72 @@
+services:
+  mc:
+    image: itzg/minecraft-server:latest   # multi-arch; pulls the arm64 build on Ampere
+    container_name: mc
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"                        # you are accepting https://aka.ms/MinecraftEULA
+      TYPE: PAPER
+      VERSION: "${MC_VERSION:-LATEST}"
+      TZ: "${TZ:-America/Los_Angeles}"
+
+      # Memory: 24GB box, so plenty of headroom. Heap 10G + ~2G for off-heap/OS.
+      MEMORY: "10G"
+      USE_AIKAR_FLAGS: "true"
+
+      # Performance tuning
+      VIEW_DISTANCE: "10"
+      SIMULATION_DISTANCE: "6"
+
+      # Access control (public IP => don't leave this open)
+      ONLINE_MODE: "true"
+      ENABLE_WHITELIST: "true"
+      WHITELIST: "${WHITELIST}"
+      OPS: "${OPS}"
+
+      MOTD: "${MOTD:-A Paper server}"
+      MAX_PLAYERS: "${MAX_PLAYERS:-20}"
+      DIFFICULTY: "normal"
+
+      # RCON is only reachable on the compose network (no published port);
+      # the backup container uses it to pause/flush saves.
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  backup:
+    image: itzg/mc-backup:latest
+    container_name: mc-backup
+    restart: unless-stopped
+    depends_on:
+      mc:
+        condition: service_healthy
+    environment:
+      BACKUP_METHOD: restic
+      RCON_HOST: mc
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+      INITIAL_DELAY: "5m"
+      BACKUP_INTERVAL: "2h"
+      PAUSE_IF_NO_PLAYERS: "true"
+      EXCLUDES: "*.jar,cache,logs,*.tmp"
+      PRUNE_RESTIC_RETENTION: "--keep-hourly 24 --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
+      RESTIC_REPOSITORY: "${RESTIC_REPOSITORY}"
+      RESTIC_PASSWORD: "${RESTIC_PASSWORD}"
+      # Backblaze B2 native credentials. For S3/R2/Wasabi, swap for
+      # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (see .env.example).
+      B2_ACCOUNT_ID: "${B2_ACCOUNT_ID:-}"
+      B2_ACCOUNT_KEY: "${B2_ACCOUNT_KEY:-}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+    volumes:
+      - ./data:/data:ro
