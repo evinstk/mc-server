@@ -62,11 +62,9 @@ services:
       PRUNE_RESTIC_RETENTION: "--keep-hourly 24 --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
       RESTIC_REPOSITORY: "${RESTIC_REPOSITORY}"
       RESTIC_PASSWORD: "${RESTIC_PASSWORD}"
-      # Backblaze B2 native credentials. For S3/R2/Wasabi, swap for
-      # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (see .env.example).
-      B2_ACCOUNT_ID: "${B2_ACCOUNT_ID:-}"
-      B2_ACCOUNT_KEY: "${B2_ACCOUNT_KEY:-}"
-      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
-      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      # Google Cloud Storage (native restic backend)
+      GOOGLE_PROJECT_ID: "${GOOGLE_PROJECT_ID}"
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcs-key.json
     volumes:
       - ./data:/data:ro
+      - ./secrets/gcs-key.json:/secrets/gcs-key.json:ro

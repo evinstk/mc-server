@@ -56,7 +56,7 @@ Networking > Virtual cloud networks > your VCN > Subnets > public subnet > Secur
 ```fish
 # from your Mac, in this directory
 set IP <reserved-public-ip>
-rsync -av --exclude data --exclude .env ./ ubuntu@$IP:~/mc-server/
+rsync -av --exclude data --exclude .env --exclude secrets ./ ubuntu@$IP:~/mc-server/
 ssh ubuntu@$IP
 ```
 
@@ -85,8 +85,17 @@ Test from your Mac: `nc -vz $IP 25565`, then connect with the Minecraft client.
 
 ## Step 6: Off-platform backups
 
-1. Create a bucket at a provider other than Oracle (Backblaze B2 is cheap, or Cloudflare R2/Wasabi). Create an app key scoped to that bucket.
-2. Fill the `RESTIC_*` and credential variables in `.env`. Save `RESTIC_PASSWORD` in your password manager too.
+1. Use your existing GCS bucket (Standard class is fine; the repo lives under the `mc-server/` prefix). Create a dedicated service account with `roles/storage.objectAdmin` on **that bucket only**, then download a JSON key:
+   ```fish
+   gcloud iam service-accounts create mc-backup --project YOUR_PROJECT
+   gcloud storage buckets add-iam-policy-binding gs://YOUR_BUCKET \
+     --member serviceAccount:mc-backup@YOUR_PROJECT.iam.gserviceaccount.com \
+     --role roles/storage.objectAdmin
+   gcloud iam service-accounts keys create gcs-key.json \
+     --iam-account mc-backup@YOUR_PROJECT.iam.gserviceaccount.com
+   ```
+   Copy it to the server as `~/mc-server/secrets/gcs-key.json` (`scp`, then `chmod 600`) and delete the local copy. Don't put it in this directory's synced files; `secrets/` is git-ignored but rsync would still send it.
+2. Fill `RESTIC_REPOSITORY`, `GOOGLE_PROJECT_ID` and `RESTIC_PASSWORD` in `.env`. Save `RESTIC_PASSWORD` in your password manager too.
 3. Restart and test immediately rather than waiting for the interval:
    ```bash
    docker compose up -d
