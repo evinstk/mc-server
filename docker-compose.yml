@@ -14,7 +14,7 @@ services:
       TZ: "${TZ:-America/Los_Angeles}"
 
       # Memory: 24GB box, so plenty of headroom. Heap 10G + ~2G for off-heap/OS.
-      MEMORY: "10G"
+      MEMORY: "${MC_MEMORY:-10G}"
       USE_AIKAR_FLAGS: "true"
 
       # Performance tuning
