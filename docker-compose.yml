@@ -7,6 +7,8 @@ services:
     stdin_open: true
     ports:
       - "25565:25565"
+      # BlueMap web UI. Loopback only: reach it with an SSH tunnel (see README).
+      - "127.0.0.1:8100:8100"
     environment:
       EULA: "TRUE"                        # you are accepting https://aka.ms/MinecraftEULA
       TYPE: PAPER
@@ -16,6 +18,9 @@ services:
       # Memory: 24GB box, so plenty of headroom. Heap 10G + ~2G for off-heap/OS.
       MEMORY: "${MC_MEMORY:-10G}"
       USE_AIKAR_FLAGS: "true"
+
+      # Plugins from Modrinth, downloaded/updated on start.
+      MODRINTH_PROJECTS: "bluemap"
 
       # Performance tuning
       VIEW_DISTANCE: "10"
@@ -58,7 +63,7 @@ services:
       INITIAL_DELAY: "5m"
       BACKUP_INTERVAL: "2h"
       PAUSE_IF_NO_PLAYERS: "true"
-      EXCLUDES: "*.jar,cache,logs,*.tmp"
+      EXCLUDES: "*.jar,cache,logs,*.tmp,bluemap"   # bluemap = regenerable map tiles
       PRUNE_RESTIC_RETENTION: "--keep-hourly 24 --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
       RESTIC_REPOSITORY: "${RESTIC_REPOSITORY}"
       RESTIC_PASSWORD: "${RESTIC_PASSWORD}"

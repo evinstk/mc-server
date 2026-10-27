@@ -120,6 +120,33 @@ Set in `docker-compose.yml`: `VIEW_DISTANCE=10`, `SIMULATION_DISTANCE=6`.
 - Paper-specific knobs live in `data/config/paper-global.yml` and `paper-world-defaults.yml` after first start. Change those only if you see a problem.
 - Heap is 10 GB. With 24 GB total you could go to 12-14 GB, but bigger heaps with Aikar flags don't help small servers and increase GC pauses.
 
+## Step 8: BlueMap (3D/isometric web map)
+
+BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compose.yml`. Its web UI listens on port 8100, published on the server's loopback only, so the map isn't public.
+
+1. First start generates the config but won't render until you accept Mojang's client-jar download (BlueMap needs it for textures). On the server:
+   ```bash
+   docker compose up -d
+   sed -i 's/accept-download: false/accept-download: true/' data/plugins/BlueMap/core.conf
+   docker compose exec mc rcon-cli bluemap reload
+   docker compose exec mc rcon-cli bluemap       # status
+   ```
+2. Render. Updates after this are incremental, and BlueMap re-renders chunks as players change them:
+   ```bash
+   docker compose exec mc rcon-cli bluemap render world
+   ```
+   The first full render of a big world can take a long time. Check progress with `bluemap` (no args).
+3. View it over an SSH tunnel from your Mac, then open http://localhost:8100:
+   ```fish
+   ssh -N -L 8100:localhost:8100 ubuntu@$IP
+   ```
+
+Notes:
+- **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (`world`, `nether`, `end` by default).
+- **Make it public:** open TCP 8100 in the VCN security list and iptables (same pattern as 25565), and change the port mapping to `"8100:8100"`. Anyone with the URL can then see your world, including builds and base coordinates. Putting Caddy or nginx in front with basic auth is safer.
+- **Backups:** map tiles live in `data/bluemap/` and are excluded from backups since they're regenerable. Config in `data/plugins/BlueMap/` is still backed up.
+- Rendering uses CPU and RAM alongside the game. Run big renders when nobody is online, and use `bluemap stop` / `bluemap start` to pause it if TPS drops.
+
 ## Operations
 
 ```bash
