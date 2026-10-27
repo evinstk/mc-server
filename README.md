@@ -133,7 +133,8 @@ BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compos
    ```
 2. Render. Updates after this are incremental, and BlueMap re-renders chunks as players change them:
    ```bash
-   docker compose exec mc rcon-cli bluemap render world
+   docker compose exec mc rcon-cli bluemap maps            # list map IDs
+   docker compose exec mc rcon-cli bluemap render <map-id> # e.g. overworld
    ```
    The first full render of a big world can take a long time. Check progress with `bluemap` (no args).
 3. View it over an SSH tunnel from your Mac, then open http://localhost:8100:
@@ -142,7 +143,7 @@ BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compos
    ```
 
 Notes:
-- **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (`world`, `nether`, `end` by default).
+- **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (one per dimension by default; the file name is the map ID).
 - **Make it public:** open TCP 8100 in the VCN security list and iptables (same pattern as 25565), and change the port mapping to `"8100:8100"`. Anyone with the URL can then see your world, including builds and base coordinates. Putting Caddy or nginx in front with basic auth is safer.
 - **Backups:** map tiles live in `data/bluemap/` and are excluded from backups since they're regenerable. Config in `data/plugins/BlueMap/` is still backed up.
 - Rendering uses CPU and RAM alongside the game. Run big renders when nobody is online, and use `bluemap stop` / `bluemap start` to pause it if TPS drops.
