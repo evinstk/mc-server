@@ -147,7 +147,7 @@ BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compos
 3. **iptables on the VM:** re-run `bash scripts/server-setup.sh` (idempotent; it now opens 80 and 443 too).
 4. **Login:** in `.env` set `MAP_USER` and `MAP_PASSWORD_HASH` (keep the single quotes):
    ```bash
-   docker run --rm caddy caddy hash-password
+   docker run --rm -it caddy caddy hash-password
    ```
 5. `docker compose up -d`, then check `docker compose logs caddy` for the certificate being issued and open the URL. Don't restart repeatedly if it fails; Let's Encrypt rate-limits failed attempts, so confirm DNS and ports first.
 
