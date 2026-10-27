@@ -131,19 +131,19 @@ BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compos
    docker compose exec mc rcon-cli bluemap reload
    docker compose exec mc rcon-cli bluemap       # status
    ```
-2. Render. Updates after this are incremental, and BlueMap re-renders chunks as players change them:
+2. Rendering starts on its own once the download is accepted, and afterwards BlueMap re-renders chunks as players change them. Check progress and map IDs with:
    ```bash
-   docker compose exec mc rcon-cli bluemap maps            # list map IDs
-   docker compose exec mc rcon-cli bluemap render <map-id> # e.g. overworld
+   docker compose exec mc rcon-cli bluemap maps    # IDs: world, world_the_nether, world_the_end
+   docker compose exec mc rcon-cli bluemap         # status / running tasks
    ```
-   The first full render of a big world can take a long time. Check progress with `bluemap` (no args).
+   To trigger work manually: `bluemap update <map-id>` (changed chunks) or `bluemap force-update <map-id>` (everything). The first full render of a big world can take a long time. RCON output shows raw `§x` colour codes; ignore them.
 3. View it over an SSH tunnel from your Mac, then open http://localhost:8100:
    ```fish
    ssh -N -L 8100:localhost:8100 ubuntu@$IP
    ```
 
 Notes:
-- **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (one per dimension by default; the file name is the map ID).
+- **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (one per dimension by default).
 - **Make it public:** open TCP 8100 in the VCN security list and iptables (same pattern as 25565), and change the port mapping to `"8100:8100"`. Anyone with the URL can then see your world, including builds and base coordinates. Putting Caddy or nginx in front with basic auth is safer.
 - **Backups:** map tiles live in `data/bluemap/` and are excluded from backups since they're regenerable. Config in `data/plugins/BlueMap/` is still backed up.
 - Rendering uses CPU and RAM alongside the game. Run big renders when nobody is online, and use `bluemap stop` / `bluemap start` to pause it if TPS drops.
