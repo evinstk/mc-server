@@ -73,3 +73,23 @@ services:
     volumes:
       - ./data:/data:ro
       - ./secrets/gcs-key.json:/secrets/gcs-key.json:ro
+
+  # HTTPS reverse proxy for the BlueMap web UI (auto Let's Encrypt cert).
+  caddy:
+    image: caddy:2
+    container_name: mc-caddy
+    restart: unless-stopped
+    depends_on:
+      - mc
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MAP_USER: "${MAP_USER}"
+      MAP_PASSWORD_HASH: "${MAP_PASSWORD_HASH}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+volumes:
+  caddy_data:

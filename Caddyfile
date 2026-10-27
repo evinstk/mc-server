@@ -1,0 +1,6 @@
+minecraft.tannerevins.com {
+	basic_auth {
+		{$MAP_USER} {$MAP_PASSWORD_HASH}
+	}
+	reverse_proxy mc:8100
+}

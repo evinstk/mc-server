@@ -4,7 +4,8 @@ Files here:
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | Paper server (`itzg/minecraft-server`) + restic backup sidecar (`itzg/mc-backup`) |
+| `docker-compose.yml` | Paper server (`itzg/minecraft-server`) + restic backup sidecar (`itzg/mc-backup`) + Caddy proxy for the BlueMap web UI |
+| `Caddyfile` | HTTPS + basic auth in front of BlueMap (`minecraft.tannerevins.com`) |
 | `.env.example` | Template for secrets/settings. Copy to `.env` on the server |
 | `scripts/server-setup.sh` | Run on the VM: installs Docker, opens iptables, persists it |
 
@@ -122,7 +123,7 @@ Set in `docker-compose.yml`: `VIEW_DISTANCE=10`, `SIMULATION_DISTANCE=6`.
 
 ## Step 8: BlueMap (3D/isometric web map)
 
-BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compose.yml`. Its web UI listens on port 8100, published on the server's loopback only, so the map isn't public.
+BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compose.yml`. Its web UI listens on port 8100, published on the server's loopback only; Caddy exposes it publicly (see below).
 
 1. First start generates the config but won't render until you accept Mojang's client-jar download (BlueMap needs it for textures). On the server:
    ```bash
@@ -137,14 +138,24 @@ BlueMap is installed as a Paper plugin via `MODRINTH_PROJECTS` in `docker-compos
    docker compose exec mc rcon-cli bluemap         # status / running tasks
    ```
    To trigger work manually: `bluemap update <map-id>` (changed chunks) or `bluemap force-update <map-id>` (everything). The first full render of a big world can take a long time. RCON output shows raw `§x` colour codes; ignore them.
-3. View it over an SSH tunnel from your Mac, then open http://localhost:8100:
-   ```fish
-   ssh -N -L 8100:localhost:8100 ubuntu@$IP
+3. Publish it at https://minecraft.tannerevins.com via Caddy (see "Public access" below). For a quick private look instead, tunnel: `ssh -N -L 8100:localhost:8100 ubuntu@$IP` and open http://localhost:8100.
+
+### Public access (Caddy)
+
+1. **DNS:** A record `minecraft.tannerevins.com` pointing at the reserved public IP.
+2. **VCN security list:** add ingress rules for TCP 80 and 443 from `0.0.0.0/0` (same steps as 25565). Port 80 is needed for the Let's Encrypt challenge.
+3. **iptables on the VM:** re-run `bash scripts/server-setup.sh` (idempotent; it now opens 80 and 443 too).
+4. **Login:** in `.env` set `MAP_USER` and `MAP_PASSWORD_HASH` (keep the single quotes):
+   ```bash
+   docker run --rm caddy caddy hash-password
    ```
+5. `docker compose up -d`, then check `docker compose logs caddy` for the certificate being issued and open the URL. Don't restart repeatedly if it fails; Let's Encrypt rate-limits failed attempts, so confirm DNS and ports first.
+
+BlueMap itself stays bound to loopback; only Caddy is reachable from the internet.
 
 Notes:
 - **Isometric look:** the web UI has Flat, Perspective and Free-flight modes. For a true isometric angle, use Perspective and zoom out far, or tilt via the controls. Maps are defined in `data/plugins/BlueMap/maps/*.conf` (one per dimension by default).
-- **Make it public:** open TCP 8100 in the VCN security list and iptables (same pattern as 25565), and change the port mapping to `"8100:8100"`. Anyone with the URL can then see your world, including builds and base coordinates. Putting Caddy or nginx in front with basic auth is safer.
+- **Visibility:** the public map shows everything explored, including builds and base coordinates. It's behind the Caddy login; hide areas in `data/plugins/BlueMap/maps/*.conf` if needed.
 - **Backups:** map tiles live in `data/bluemap/` and are excluded from backups since they're regenerable. Config in `data/plugins/BlueMap/` is still backed up.
 - Rendering uses CPU and RAM alongside the game. Run big renders when nobody is online, and use `bluemap stop` / `bluemap start` to pause it if TPS drops.
 
