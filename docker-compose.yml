@@ -34,7 +34,7 @@ services:
 
       MOTD: "${MOTD:-A Paper server}"
       MAX_PLAYERS: "${MAX_PLAYERS:-20}"
-      DIFFICULTY: "normal"
+      DIFFICULTY: "${DIFFICULTY:-normal}"
 
       # RCON is only reachable on the compose network (no published port);
       # the backup container uses it to pause/flush saves.
